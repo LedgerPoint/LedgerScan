@@ -10,16 +10,16 @@ module.exports = async function handler(req, res) {
   const apiKey = process.env.FMP_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "FMP_API_KEY not configured" });
 
-  const queryParams = new URLSearchParams({ ...params, apikey: apiKey });
-  const url = `https://financialmodelingprep.com/stable/${path}?${queryParams}`;
+  // Build query string manually to avoid encoding commas in symbol lists
+  const paramStr = Object.entries({ ...params, apikey: apiKey })
+    .map(([k, v]) => `${k}=${k === "symbol" ? v : encodeURIComponent(v)}`)
+    .join("&");
 
-  console.log("Fetching:", url.replace(apiKey, "***"));
+  const url = `https://financialmodelingprep.com/stable/${path}?${paramStr}`;
 
   try {
     const response = await fetch(url);
-    const text = await response.text();
-    console.log("FMP status:", response.status, "preview:", text.slice(0, 200));
-    const data = JSON.parse(text);
+    const data = await response.json();
     if (data && data["Error Message"]) return res.status(403).json({ error: data["Error Message"] });
     return res.status(200).json(data);
   } catch (err) {
