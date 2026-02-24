@@ -117,7 +117,7 @@ export default function LedgerScan() {
         batches.push(TICKERS.slice(i, i + 10).join(","));
 
       const batchResults = await Promise.all(
-        batches.map(symbols => fmp("profile", { symbol: symbols }).catch(() => []))
+        batches.map(symbols => fetch(`/api/fmp?symbol=${symbols}`).then(r=>r.json()).catch(() => []))
       );
 
       setLoadMsg("Scoring and ranking...");
