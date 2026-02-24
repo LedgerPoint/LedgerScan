@@ -4,25 +4,22 @@ module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
 
-  const { path, symbol, ...params } = req.query;
-  if (!path) return res.status(400).json({ error: "Missing path" });
+  const { symbol } = req.query;
+  if (!symbol) return res.status(400).json({ error: "Missing symbol" });
 
   const apiKey = process.env.FMP_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "FMP_API_KEY not configured" });
 
-  const symbols = symbol ? symbol.split(",").map(s => s.trim()).filter(Boolean) : [null];
+  const symbols = symbol.split(",").map(s => s.trim()).filter(Boolean);
 
   try {
     const results = await Promise.all(symbols.map(async (sym) => {
-      const paramStr = new URLSearchParams({ ...params, apikey: apiKey });
-      if (sym) paramStr.set("symbol", sym);
-      const url = `https://financialmodelingprep.com/stable/${path}?${paramStr}`;
+      const url = `https://financialmodelingprep.com/stable/profile-symbol/${sym}?apikey=${apiKey}`;
       const response = await fetch(url);
       const data = await response.json();
-      if (!Array.isArray(data)) return data;
-      return data[0] || null;
+      if (Array.isArray(data)) return data[0] || null;
+      return data || null;
     }));
-
     return res.status(200).json(results.filter(Boolean));
   } catch (err) {
     return res.status(500).json({ error: "Proxy failed", detail: err.message });
